@@ -25,7 +25,7 @@
     },
     "data": {
         "train": {
-            "batch_size": 16,
+            "batch_size": 20,
             "batch_expand_size": 24,
             "num_workers": 5,
             "datasets": [
@@ -73,7 +73,7 @@
         "early_stop": 50,
         "visualize": "wandb",
         "wandb_project": "fastspeech_project",
-        "run_name": "test",
+        "run_name": "seminar_model",
         "sample_rate": 16000,
         "len_epoch": 3000,
         "log_step": 50,
