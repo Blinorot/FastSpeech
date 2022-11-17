@@ -147,6 +147,9 @@ class Trainer(BaseTrainer):
 
     def process_batch(self, batch, is_train: bool, metrics: MetricTracker,
                       index: Optional[int] = None, total: Optional[int] = None):
+        if (index + 1) % self.batch_accum_steps == 0 or index + 1 == total:
+            self.optimizer.zero_grad()
+        
         batch = self.move_batch_to_device(batch, self.device)
         outputs = self.model(**batch)
         if type(outputs) is dict:
@@ -163,7 +166,6 @@ class Trainer(BaseTrainer):
             if (index + 1) % self.batch_accum_steps == 0 or index + 1 == total:
                 self._clip_grad_norm()
                 self.optimizer.step()
-                self.optimizer.zero_grad()
             if self.lr_scheduler is not None:
                 self.lr_scheduler.step()
         if is_train:

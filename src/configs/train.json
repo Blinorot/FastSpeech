@@ -1,5 +1,5 @@
 {
-    "name": "testing",
+    "name": "FastSpeech",
     "n_gpu": 1,
     "arch": {
         "type": "FastSpeechModel",
@@ -25,8 +25,8 @@
     },
     "data": {
         "train": {
-            "batch_size": 2,
-            "batch_expand_size": 1,
+            "batch_size": 16,
+            "batch_expand_size": 16,
             "num_workers": 5,
             "datasets": [
                 {
@@ -36,8 +36,7 @@
                         "alignment_path": "data/alignments",
                         "data_path": "data/train.txt",
                         "text_cleaners": ["english_cleaners"],
-                        "batch_expand_size": 1,
-                        "limit": 2
+                        "batch_expand_size": 16
                     }
                 }
             ]
@@ -57,7 +56,7 @@
     "lr_scheduler": {
         "type": "OneCycleLR",
         "args": {
-            "steps_per_epoch": 100,
+            "steps_per_epoch": 3000,
             "epochs": 30,
             "anneal_strategy": "cos",
             "max_lr": 1e-3,
@@ -65,7 +64,7 @@
         }
     },
     "trainer": {
-        "batch_expand_size": 1,
+        "batch_expand_size": 16,
         "epochs": 30,
         "save_dir": "saved/",
         "save_period": 5,
@@ -76,7 +75,7 @@
         "wandb_project": "fastspeech_project",
         "run_name": "test",
         "sample_rate": 16000,
-        "len_epoch": 100,
+        "len_epoch": 3000,
         "log_step": 50,
         "grad_norm_clip": 1,
         "batch_accum_steps": 1
