@@ -1,0 +1,84 @@
+{
+    "name": "lstm_en",
+    "n_gpu": 1,
+    "arch": {
+        "type": "FastSpeechModel",
+        "args": {
+            "vocab_size": 300,
+            "max_seq_len": 3000,
+            "encoder_dim": 256,
+            "encoder_n_layer": 4,
+            "encoder_head": 2,
+            "encoder_conv1d_filter_size": 1024,
+            "decoder_dim": 256,
+            "decoder_n_layer": 4,
+            "decoder_head": 2,
+            "decoder_conv1d_filter_size": 1024,
+            "fft_conv1d_kernel": [9, 1],
+            "fft_conv1d_padding": [4, 0],
+            "duration_predictor_filter_size": 256,
+            "duration_predictor_kernel_size": 3,
+            "dropout": 0.1,
+            "PAD": 0,
+            "num_mels": 80
+        }
+    },
+    "data": {
+        "train": {
+            "batch_size": 2,
+            "batch_expand_size": 1,
+            "num_workers": 5,
+            "datasets": [
+                {
+                    "type": "LJDataset",
+                    "args": {
+                        "mel_ground_truth": "data/mels",
+                        "alignment_path": "data/alignments",
+                        "data_path": "data/train.txt",
+                        "text_cleaners": ["english_cleaners"],
+                        "batch_expand_size": 1,
+                        "limit": 2
+                    }
+                }
+            ]
+        }
+    },
+    "optimizer": {
+        "type": "Adam",
+        "args": {
+            "lr": 1e-3,
+            "weight_decay": 1e-6
+        }
+    },
+    "loss": {
+        "type": "FastSpeechLoss",
+        "args": {}
+    },
+    "lr_scheduler": {
+        "type": "OneCycleLR",
+        "args": {
+            "steps_per_epoch": 100,
+            "epochs": 30,
+            "anneal_strategy": "cos",
+            "max_lr": 1e-3,
+            "pct_start": 0.1
+        }
+    },
+    "trainer": {
+        "batch_expand_size": 1,
+        "epochs": 30,
+        "save_dir": "saved/",
+        "save_period": 5,
+        "verbosity": 2,
+        "monitor": "min loss",
+        "early_stop": 50,
+        "visualize": "wandb",
+        "wandb_project": "fastspeech_project",
+        "run_name": "test",
+        "sample_rate": 16000,
+        "len_epoch": 100,
+        "log_step": 50,
+        "grad_norm_clip": 1,
+        "batch_accum_steps": 1
+    }
+}
