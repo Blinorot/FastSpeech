@@ -83,11 +83,12 @@ class Trainer(BaseTrainer):
         self.train_metrics.reset()
         self.writer.add_scalar("epoch", epoch)
 
-        for list_batch_idx, list_batch in enumerate(
-                tqdm(self.train_dataloader, desc="train", total=self.len_epoch)
-        ):
+        progress_bar = tqdm(range(self.len_epoch), desc='train')
+
+        for list_batch_idx, list_batch in enumerate(self.train_dataloader):
             stop = False
             for batch_idx, batch in enumerate(list_batch):
+                progress_bar.update(1)
                 try:
                     batch = self.process_batch(
                         batch,

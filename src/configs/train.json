@@ -26,7 +26,7 @@
     "data": {
         "train": {
             "batch_size": 16,
-            "batch_expand_size": 16,
+            "batch_expand_size": 24,
             "num_workers": 5,
             "datasets": [
                 {
@@ -36,7 +36,7 @@
                         "alignment_path": "data/alignments",
                         "data_path": "data/train.txt",
                         "text_cleaners": ["english_cleaners"],
-                        "batch_expand_size": 16
+                        "batch_expand_size": 24
                     }
                 }
             ]
@@ -64,7 +64,7 @@
         }
     },
     "trainer": {
-        "batch_expand_size": 16,
+        "batch_expand_size": 24,
         "epochs": 30,
         "save_dir": "saved/",
         "save_period": 5,
