@@ -1,16 +1,22 @@
+import argparse
+import json
 import os
 import warnings
 
 import numpy as np
 import torch
+from pyexpat import model
 from torch.serialization import SourceChangeWarning
 from tqdm.auto import tqdm
+from typing_extensions import assert_type
 
 import audio
+import src.model as module_model
 import text
 import utils
 import waveglow
 from src.utils import ROOT_PATH
+from src.utils.parse_config import ConfigParser
 
 DEVICE = "cuda:0" if torch.cuda.is_available() else 'cpu'
 TEXT_CLEANERS = ["english_cleaners"]
@@ -92,3 +98,40 @@ def run_synthesis(model, extra_data=None):
                 mel_cuda, WaveGlow,
                 f"results/s={speed}_{i}_waveglow.wav"
             )
+
+
+if __name__ == '__main__':
+    args = argparse.ArgumentParser(description="Synthesize")
+    args.add_argument(
+        "-c",
+        "--config",
+        default=None,
+        type=str,
+        help="path to checkpoint config file (default: None)",
+    )
+    args.add_argument(
+        "-p",
+        "--pretrained",
+        default=None,
+        type=str,
+        help="path to latest checkpoint to init model weights with it (default: None)",
+    )
+    
+    args = args.parse_args()
+    
+    assert args.config is not None
+    assert args.pretrained is not None, 'Provide model checkpoint to use in script mode'
+
+    with open(args.config, 'r') as f:
+        config = ConfigParser(json.load(f))
+
+    logger = config.get_logger("test")
+
+    model = config.init_obj(config["arch"], module_model)
+    logger.info(model)
+
+    state_dict = torch.load(args.pretrained, map_location=DEVICE)['state_dict']
+    model.load_state_dict(state_dict)
+    model = model.to(DEVICE)
+    model.eval()
+    run_synthesis(model)

@@ -60,7 +60,6 @@ def download():
     for i, fpath in enumerate((data_dir / "TextGrid" / "LJSpeech").iterdir()):
         real_i = names_dict[fpath.name]
         new_name = "ljspeech-mfa-%05d.TextGrid" % (real_i+1)
-        print(fpath.name, new_name)
         shutil.move(str(fpath), str(align_dir / new_name))
 
     shutil.rmtree(str(data_dir / "TextGrid"))
