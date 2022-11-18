@@ -68,7 +68,7 @@ class MultiHeadAttention(nn.Module):
         
     def forward(self, q, k, v, mask=None):
         # inspired by https://github.com/karpathy/minGPT/blob/master/mingpt/model.py
-        
+
         d_k, d_v, n_head = self.d_k, self.d_v, self.n_head
 
         sz_b, len_q, _ = q.size()
@@ -77,9 +77,10 @@ class MultiHeadAttention(nn.Module):
 
         residual = q
 
-        q = self.w_qs(q).view(sz_b, len_q, n_head, d_k).transpose(1, 2)
-        k = self.w_ks(k).view(sz_b, len_k, n_head, d_k).transpose(1, 2)
-        v = self.w_vs(v).view(sz_b, len_v, n_head, d_v).transpose(1, 2)
+        # pre-normalization for q, k, v
+        q = self.w_qs(self.layer_norm(q)).view(sz_b, len_q, n_head, d_k).transpose(1, 2)
+        k = self.w_ks(self.layer_norm(k)).view(sz_b, len_k, n_head, d_k).transpose(1, 2)
+        v = self.w_vs(self.layer_norm(v)).view(sz_b, len_v, n_head, d_v).transpose(1, 2)
         
         if mask is not None:
             mask = mask.unsqueeze(1).repeat(1, n_head, 1, 1)   # b x n x .. x ..
@@ -88,6 +89,6 @@ class MultiHeadAttention(nn.Module):
         output = output.transpose(1, 2).contiguous().view(sz_b, len_q, -1)  # b x lq x (n*dv)
 
         output = self.dropout(self.fc(output))
-        output = self.layer_norm(output + residual)
+        output = output + residual
 
         return output, attn
