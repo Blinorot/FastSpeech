@@ -73,7 +73,7 @@
         "early_stop": 50,
         "visualize": "wandb",
         "wandb_project": "fastspeech_project",
-        "run_name": "faster_model",
+        "run_name": "prenorm_model",
         "sample_rate": 16000,
         "len_epoch": 3000,
         "log_step": 50,
