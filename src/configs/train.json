@@ -33,7 +33,7 @@
                     "type": "LJDataset",
                     "args": {
                         "mel_ground_truth": "data/mels",
-                        "alignment_path": "data/alignments",
+                        "alignment_path": "data/MFA_2",
                         "data_path": "data/train.txt",
                         "text_cleaners": ["english_cleaners"],
                         "batch_expand_size": 24
@@ -73,7 +73,7 @@
         "early_stop": 50,
         "visualize": "wandb",
         "wandb_project": "fastspeech_project",
-        "run_name": "prenorm_model",
+        "run_name": "mfa_model",
         "sample_rate": 16000,
         "len_epoch": 3000,
         "log_step": 50,

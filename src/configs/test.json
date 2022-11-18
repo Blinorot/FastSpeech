@@ -33,7 +33,7 @@
                     "type": "LJDataset",
                     "args": {
                         "mel_ground_truth": "data/mels",
-                        "alignment_path": "data/alignments",
+                        "alignment_path": "data/MFA_2",
                         "data_path": "data/train.txt",
                         "text_cleaners": ["english_cleaners"],
                         "batch_expand_size": 1,

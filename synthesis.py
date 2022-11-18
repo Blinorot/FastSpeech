@@ -25,6 +25,7 @@ def synthesis(model, text, alpha=1.0):
     
     with torch.no_grad():
         mel = model.forward(sequence, src_pos, alpha=alpha)["mel_output"]
+        print(mel.shape)
     return mel[0].cpu().transpose(0, 1), mel.contiguous().transpose(1, 2)
 
 
@@ -35,7 +36,27 @@ def get_data(extra_data=None):
         "Massachusetts Institute of Technology may be best known for its math, science and engineering education",
         "Wasserstein distance or Kantorovich Rubinstein metric is a distance function defined between probability distributions on a given metric space",
     ]
-    data_list = list(text.text_to_sequence(test, TEXT_CLEANERS) for test in tests)
+
+    phoneme_tests = [
+        "EY _ D IY F IH B R IH L EY T ER _ IH Z _ EY _ D IH V AY S _ DH AE T _ G IH V Z _ EY _ HH AY _ EH N ER JH IY _ IH L EH K T R IH K _ SH AA K _ T UW _ DH AH _ HH AA R T _ AH V _ S AH M W AH N _ HH UW _ IH Z _ IH N _ K AA R D IY AE K _ ER EH S T",
+        "M AE S AH CH UW S AH T S _ IH N S T IH T UW T _ AH V _ T EH K N AA L AH JH IY _ M EY _ B IY _ B EH S T _ N OW N _ F AO R _ IH T S _ M AE TH _ S AY AH N S _ AH N D _ EH N JH AH N IH R IH NG _ EH JH AH K EY SH AH N",
+        "W AA S ER S T IY N _ D IH S T AH N S _ AO R _ K AE N T AO R AH V AH CH _ R UW B IH N S T IY N _ M EH T R IH K _ IH Z _ EY _ D IH S T AH N S _ F AH NG K SH AH N _ D IH F AY N D _ B IH T W IY N _ P R AA B AH B IH L AH T IY _ D IH S T R AH B Y UW SH AH N Z _ AA N _ EY _ G IH V AH N _ M EH T R IH K _ S P EY S"
+    ]
+
+    true_phoneme_tests = []
+    for test in phoneme_tests:
+        true_test = []
+        for elem in test.split():
+            if elem == '_':
+                true_test.append(' ')
+            else:
+                true_test.append(elem)
+        true_phoneme_tests.append('_'.join(true_test))
+
+    #data_list = list(text.text_to_sequence(test, TEXT_CLEANERS) for test in tests)
+    data_list = list(text._arpabet_to_sequence(test) for test in true_phoneme_tests)
+
+    print(data_list)
 
     if extra_data is not None: #  utterance from train "Printing, in the only sense with which we are at present concerned, differs from most if not from all the arts and crafts represented in the Exhibition"
         data_list.append(extra_data)
