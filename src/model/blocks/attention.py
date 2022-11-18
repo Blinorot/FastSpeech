@@ -10,7 +10,7 @@ class ScaledDotProductAttention(nn.Module):
         super().__init__()
         self.temperature = temperature
         self.dropout = nn.Dropout(attn_dropout)
-        self.softmax = nn.Softmax(dim=2)
+        self.softmax = nn.Softmax(dim=-1)
 
     def forward(self, q, k, v, mask=None):
         # q, k, v: [ (batch_size * n_heads) x seq_len x hidden_size ]
@@ -67,6 +67,8 @@ class MultiHeadAttention(nn.Module):
                         std=np.sqrt(2.0 / (self.d_model + self.d_v))) 
         
     def forward(self, q, k, v, mask=None):
+        # inspired by https://github.com/karpathy/minGPT/blob/master/mingpt/model.py
+        
         d_k, d_v, n_head = self.d_k, self.d_v, self.n_head
 
         sz_b, len_q, _ = q.size()
@@ -75,20 +77,15 @@ class MultiHeadAttention(nn.Module):
 
         residual = q
 
-        q = self.w_qs(q).view(sz_b, len_q, n_head, d_k)
-        k = self.w_ks(k).view(sz_b, len_k, n_head, d_k)
-        v = self.w_vs(v).view(sz_b, len_v, n_head, d_v)
-
-        q = q.permute(2, 0, 1, 3).contiguous().view(-1, len_q, d_k)  # (n*b) x lq x dk
-        k = k.permute(2, 0, 1, 3).contiguous().view(-1, len_k, d_k)  # (n*b) x lk x dk
-        v = v.permute(2, 0, 1, 3).contiguous().view(-1, len_v, d_v)  # (n*b) x lv x dv
+        q = self.w_qs(q).view(sz_b, len_q, n_head, d_k).transpose(1, 2)
+        k = self.w_ks(k).view(sz_b, len_k, n_head, d_k).transpose(1, 2)
+        v = self.w_vs(v).view(sz_b, len_v, n_head, d_v).transpose(1, 2)
         
         if mask is not None:
-            mask = mask.repeat(n_head, 1, 1)  # (n*b) x .. x ..
+            mask = mask.unsqueeze(1).repeat(1, n_head, 1, 1)   # b x n x .. x ..
         output, attn = self.attention(q, k, v, mask=mask)
 
-        output = output.view(n_head, sz_b, len_q, d_v)
-        output = output.permute(1, 2, 0, 3).contiguous().view(sz_b, len_q, -1)  # b x lq x (n*dv)
+        output = output.transpose(1, 2).contiguous().view(sz_b, len_q, -1)  # b x lq x (n*dv)
 
         output = self.dropout(self.fc(output))
         output = self.layer_norm(output + residual)
