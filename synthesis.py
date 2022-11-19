@@ -21,7 +21,7 @@ from src.utils.parse_config import ConfigParser
 DEVICE = "cuda:0" if torch.cuda.is_available() else 'cpu'
 TEXT_CLEANERS = ["english_cleaners"]
 
-def synthesis(model, text, alpha=1.0):
+def synthesis(model, text, alpha=1.0, beta=1.0):
     text = np.array(text)
     text = np.stack([text])
     src_pos = np.array([i+1 for i in range(text.shape[1])])
@@ -30,8 +30,7 @@ def synthesis(model, text, alpha=1.0):
     src_pos = torch.from_numpy(src_pos).long().to(DEVICE)
     
     with torch.no_grad():
-        mel = model.forward(sequence, src_pos, alpha=alpha)["mel_output"]
-        print(mel.shape)
+        mel = model.forward(sequence, src_pos, alpha=alpha, beta=beta)["mel_output"]
     return mel[0].cpu().transpose(0, 1), mel.contiguous().transpose(1, 2)
 
 
@@ -62,8 +61,6 @@ def get_data(extra_data=None):
     #data_list = list(text.text_to_sequence(test, TEXT_CLEANERS) for test in tests)
     data_list = list(text._arpabet_to_sequence(test) for test in true_phoneme_tests)
 
-    print(data_list)
-
     if extra_data is not None: #  utterance from train "Printing, in the only sense with which we are at present concerned, differs from most if not from all the arts and crafts represented in the Exhibition"
         data_list.append(extra_data)
 
@@ -85,19 +82,20 @@ def run_synthesis(model, extra_data=None):
 
     data_list = get_data(extra_data=extra_data)
     for speed in [1]:
-        for i, phn in tqdm(enumerate(data_list), desc=f"eval_speed_{speed}", total=len(data_list)):
-            mel, mel_cuda = synthesis(model, phn, speed)
-            
-            os.makedirs("results", exist_ok=True)
-            
-            audio.tools.inv_mel_spec(
-                mel, f"results/s={speed}_{i}.wav"
-            )
-            
-            waveglow.inference.inference(
-                mel_cuda, WaveGlow,
-                f"results/s={speed}_{i}_waveglow.wav"
-            )
+        for energy in [0.8, 1]:
+            for i, phn in tqdm(enumerate(data_list), desc=f"eval_speed_{speed}_{energy}", total=len(data_list)):
+                mel, mel_cuda = synthesis(model, phn, alpha=speed, beta=energy)
+                
+                os.makedirs("results", exist_ok=True)
+                
+                # audio.tools.inv_mel_spec(
+                #     mel, f"results/s={speed}_{i}.wav"
+                # )
+                
+                waveglow.inference.inference(
+                    mel_cuda, WaveGlow,
+                    f"results/s={speed}_{energy}_{i}_waveglow.wav"
+                )
 
 
 if __name__ == '__main__':
