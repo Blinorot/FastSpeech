@@ -116,7 +116,7 @@ class LengthRegulator(nn.Module):
             output = self.LR(x, target, mel_max_length)
             return output, duration_predictor_output
         else:
-            duration_predictor_output = ((duration_predictor_output * alpha) + 0.5).int()
+            duration_predictor_output = ((torch.exp(duration_predictor_output) * alpha) + 0.5).int()
 
             output = self.LR(x, duration_predictor_output)
             mel_pos = torch.stack(
