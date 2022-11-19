@@ -18,9 +18,14 @@
             "fft_conv1d_padding": [4, 0],
             "duration_predictor_filter_size": 256,
             "duration_predictor_kernel_size": 3,
+            "energy_predictor_filter_size": 256,
+            "energy_predictor_kernel_size": 3,
             "dropout": 0.1,
             "PAD": 0,
-            "num_mels": 80
+            "num_mels": 80,
+            "min_energy": 15.023643,
+            "max_energy": 91.4197,
+            "num_bins": 256
         }
     },
     "data": {
@@ -34,6 +39,7 @@
                     "args": {
                         "mel_ground_truth": "data/mels",
                         "alignment_path": "data/MFA_2",
+                        "energy_path": "data/energy",
                         "data_path": "data/train.txt",
                         "text_cleaners": ["english_cleaners"],
                         "batch_expand_size": 1,

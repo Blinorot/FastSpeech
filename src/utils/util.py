@@ -98,10 +98,13 @@ def process_text(train_text_path):
         return txt
 
 
-def get_data_to_buffer(data_path, mel_ground_truth, alignment_path, text_cleaners, batch_expand_size):    
+def get_data_to_buffer(data_path, mel_ground_truth, alignment_path,
+                       energy_path,
+                       text_cleaners, batch_expand_size):    
     data_path = str(ROOT_PATH / data_path)
     mel_ground_truth = str(ROOT_PATH / mel_ground_truth)
     alignment_path = str(ROOT_PATH / alignment_path)
+    energy_path = str(ROOT_PATH / energy_path)
 
     buffer = list()
     text = process_text(data_path)
@@ -122,13 +125,19 @@ def get_data_to_buffer(data_path, mel_ground_truth, alignment_path, text_cleaner
         with open(character_gt_name, 'r') as f:
             character = f.readline()
 
+        en_gt_name = os.path.join(
+            energy_path, "ljspeech-energy-%05d.npy" % (i+1))
+        energy = np.load(en_gt_name)
+
         character = np.array(_arpabet_to_sequence(character))
 
         character = torch.from_numpy(character)
         duration = torch.from_numpy(duration)
+        energy = torch.from_numpy(energy)
         mel_gt_target = torch.from_numpy(mel_gt_target)
             
         buffer.append({"text": character, "duration": duration,
+                       "energy": energy,
                        "mel_target": mel_gt_target,
                        "batch_expand_size": batch_expand_size})
 
