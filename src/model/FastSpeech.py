@@ -204,27 +204,30 @@ class FastSpeechModel(BaseModel):
         mask = mask.unsqueeze(-1).expand(-1, -1, mel_output.size(-1))
         return mel_output.masked_fill(mask, 0.)
 
-    def get_energy(self, x, energy_target=None, beta=1.0):
+    def get_energy(self, x, energy_target=None, gamma=1.0):
         energy_predictor_output = self.energy_predictor(x)
         
         # we estimate energy_target + 1 to avoid nans
         if energy_target is not None:
             buckets = torch.bucketize(torch.log(energy_target + 1), self.energy_space)
         else:
-            buckets = torch.bucketize(energy_predictor_output + np.log(beta), self.energy_space)
+            estimated_energy = torch.exp(energy_predictor_output) - 1 # (energy_target + 1) - 1
+            estimated_energy = estimated_energy * gamma # energy_target * beta
+            buckets = torch.bucketize(torch.log(estimated_energy + 1), self.energy_space)
         emb = self.energy_emb(buckets)
         return emb, energy_predictor_output
 
     def forward(self, src_seq, src_pos, mel_pos=None,
                 mel_max_length=None, length_target=None, 
-                energy_target=None, alpha=1.0, beta=1.0,
+                energy_target=None, alpha=1.0, gamma=1.0,
                 **kwargs):
         x, non_pad_mask = self.encoder(src_seq, src_pos)
         if self.training:
             output, duration_predictor_output = self.length_regulator(x, alpha, 
                                                             length_target, mel_max_length)
 
-            energy_emb, energy_predictor_output = self.get_energy(output, energy_target=energy_target, beta=beta)
+            energy_emb, energy_predictor_output = self.get_energy(output, 
+                                                            energy_target=energy_target, gamma=gamma)
 
             output = self.decoder(output + energy_emb, mel_pos)
             output = self.mask_tensor(output, mel_pos, mel_max_length)
@@ -235,7 +238,7 @@ class FastSpeechModel(BaseModel):
                     "energy_predictor_output": energy_predictor_output}
         else:
             output, mel_pos = self.length_regulator(x, alpha)
-            energy_emb, _ = self.get_energy(output, beta=beta)
+            energy_emb, _ = self.get_energy(output, gamma=gamma)
             output = self.decoder(output + energy_emb, mel_pos)
             output = self.mel_linear(output)
             return {"mel_output": output}

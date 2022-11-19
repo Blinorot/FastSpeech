@@ -21,7 +21,7 @@ from src.utils.parse_config import ConfigParser
 DEVICE = "cuda:0" if torch.cuda.is_available() else 'cpu'
 TEXT_CLEANERS = ["english_cleaners"]
 
-def synthesis(model, text, alpha=1.0, beta=1.0):
+def synthesis(model, text, alpha=1.0, gamma=1.0):
     text = np.array(text)
     text = np.stack([text])
     src_pos = np.array([i+1 for i in range(text.shape[1])])
@@ -30,7 +30,7 @@ def synthesis(model, text, alpha=1.0, beta=1.0):
     src_pos = torch.from_numpy(src_pos).long().to(DEVICE)
     
     with torch.no_grad():
-        mel = model.forward(sequence, src_pos, alpha=alpha, beta=beta)["mel_output"]
+        mel = model.forward(sequence, src_pos, alpha=alpha, gamma=gamma)["mel_output"]
     return mel[0].cpu().transpose(0, 1), mel.contiguous().transpose(1, 2)
 
 
@@ -84,7 +84,7 @@ def run_synthesis(model, extra_data=None):
     for speed in [1]:
         for energy in [0.8, 1]:
             for i, phn in tqdm(enumerate(data_list), desc=f"eval_speed_{speed}_{energy}", total=len(data_list)):
-                mel, mel_cuda = synthesis(model, phn, alpha=speed, beta=energy)
+                mel, mel_cuda = synthesis(model, phn, alpha=speed, gamma=energy)
                 
                 os.makedirs("results", exist_ok=True)
                 
