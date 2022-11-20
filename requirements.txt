@@ -18,3 +18,4 @@ inflect
 hparams
 TextGrid
 nltk
+pyworld

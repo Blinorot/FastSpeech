@@ -54,7 +54,8 @@ class Trainer(BaseTrainer):
         self.batch_expand_size = self.config["trainer"]["batch_expand_size"]
 
         self.train_metrics = MetricTracker(
-            "loss", "mel_loss", "duration_loss", "energy_loss", "grad norm", writer=self.writer
+            "loss", "mel_loss", "duration_loss", "pitch_loss",
+            "energy_loss", "grad norm", writer=self.writer
         )
 
     @staticmethod
@@ -62,7 +63,8 @@ class Trainer(BaseTrainer):
         """
         Move all necessary tensors to the HPU
         """
-        names = ["src_seq", "mel_target", "length_target", "energy_target", "mel_pos", "src_pos"]
+        names = ["src_seq", "mel_target", "length_target", "energy_target",
+                 "mel_pos", "src_pos", "pitch_target"]
         for tensor_for_gpu in names:
             batch[tensor_for_gpu] = batch[tensor_for_gpu].to(device)
         return batch
@@ -160,11 +162,12 @@ class Trainer(BaseTrainer):
             batch["mel_output"] = outputs
 
         if is_train:
-            mel_loss, duration_loss, energy_loss = self.criterion(**batch)
+            mel_loss, duration_loss, energy_loss, pitch_loss = self.criterion(**batch)
             batch["mel_loss"] = mel_loss
             batch["duration_loss"] = duration_loss
+            batch["pitch_loss"] = pitch_loss
             batch["energy_loss"] = energy_loss
-            batch["loss"] = mel_loss + duration_loss + energy_loss
+            batch["loss"] = mel_loss + duration_loss + pitch_loss + energy_loss
             batch["loss"].backward()
             if (index + 1) % self.batch_accum_steps == 0 or index + 1 == total:
                 self._clip_grad_norm()
@@ -175,6 +178,7 @@ class Trainer(BaseTrainer):
             metrics.update("loss", batch["loss"].item())
             metrics.update("mel_loss", batch["mel_loss"].item())
             metrics.update("duration_loss", batch["duration_loss"].item())
+            metrics.update("pitch_loss", batch["pitch_loss"].item())
             metrics.update("energy_loss", batch["energy_loss"].item())
         else:
             metrics.update("loss", 0) # we do not count loss in eval mode
