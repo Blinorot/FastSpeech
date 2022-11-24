@@ -13,7 +13,7 @@ def phonemizer():
         "Wasserstein distance or Kantorovich Rubinstein metric is a distance function defined between probability distributions on a given metric space",
     ]
 
-    corpus['kantorovich'] = ['K AE N T AO R AH V IH1 CH'.split()] # add word to lexicon
+    corpus['kantorovich'] = ['K AA0 N T AO R AH V IH1 CH'.split()] # add word to lexicon
     
     phoneme_tests = []
 
