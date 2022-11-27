@@ -36,7 +36,7 @@ class WanDBWriter:
             logger.warning("For use wandb install it via \n\t pip install wandb")
 
         self.step = 0
-        self.mode = ""
+        self.mode = "train"
         self.timer = datetime.now()
 
     def set_step(self, step, mode="train"):

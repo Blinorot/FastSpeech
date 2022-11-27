@@ -54,7 +54,8 @@ class Trainer(BaseTrainer):
         self.batch_expand_size = self.config["trainer"]["batch_expand_size"]
 
         self.train_metrics = MetricTracker(
-            "loss", "mel_loss", "duration_loss", "grad norm", writer=self.writer
+            "loss", "mel_loss", "duration_loss", "pitch_loss",
+            "energy_loss", "grad norm", writer=self.writer
         )
 
     @staticmethod
@@ -62,7 +63,9 @@ class Trainer(BaseTrainer):
         """
         Move all necessary tensors to the HPU
         """
-        for tensor_for_gpu in ["src_seq", "mel_target", "length_target", "mel_pos", "src_pos"]:
+        names = ["src_seq", "mel_target", "length_target", "energy_target",
+                 "mel_pos", "src_pos", "pitch_target"]
+        for tensor_for_gpu in names:
             batch[tensor_for_gpu] = batch[tensor_for_gpu].to(device)
         return batch
 
@@ -83,11 +86,12 @@ class Trainer(BaseTrainer):
         self.train_metrics.reset()
         self.writer.add_scalar("epoch", epoch)
 
-        for list_batch_idx, list_batch in enumerate(
-                tqdm(self.train_dataloader, desc="train", total=self.len_epoch)
-        ):
+        progress_bar = tqdm(range(self.len_epoch), desc='train')
+
+        for list_batch_idx, list_batch in enumerate(self.train_dataloader):
             stop = False
             for batch_idx, batch in enumerate(list_batch):
+                progress_bar.update(1)
                 try:
                     batch = self.process_batch(
                         batch,
@@ -126,7 +130,7 @@ class Trainer(BaseTrainer):
                     # because we are interested in recent train metrics
                     last_train_metrics = self.train_metrics.result()
                     self.train_metrics.reset()
-                if full_batch_idx >= self.len_epoch:
+                if full_batch_idx + 1 >= self.len_epoch:
                     stop = True
                     break
             if stop:
@@ -147,6 +151,9 @@ class Trainer(BaseTrainer):
 
     def process_batch(self, batch, is_train: bool, metrics: MetricTracker,
                       index: Optional[int] = None, total: Optional[int] = None):
+        if (index + 1) % self.batch_accum_steps == 0 or index + 1 == total:
+            self.optimizer.zero_grad()
+        
         batch = self.move_batch_to_device(batch, self.device)
         outputs = self.model(**batch)
         if type(outputs) is dict:
@@ -155,21 +162,24 @@ class Trainer(BaseTrainer):
             batch["mel_output"] = outputs
 
         if is_train:
-            mel_loss, duration_loss = self.criterion(**batch)
+            mel_loss, duration_loss, energy_loss, pitch_loss = self.criterion(**batch)
             batch["mel_loss"] = mel_loss
             batch["duration_loss"] = duration_loss
-            batch["loss"] = mel_loss + duration_loss
+            batch["pitch_loss"] = pitch_loss
+            batch["energy_loss"] = energy_loss
+            batch["loss"] = mel_loss + duration_loss + pitch_loss + energy_loss
             batch["loss"].backward()
             if (index + 1) % self.batch_accum_steps == 0 or index + 1 == total:
                 self._clip_grad_norm()
                 self.optimizer.step()
-                self.optimizer.zero_grad()
             if self.lr_scheduler is not None:
                 self.lr_scheduler.step()
         if is_train:
             metrics.update("loss", batch["loss"].item())
             metrics.update("mel_loss", batch["mel_loss"].item())
             metrics.update("duration_loss", batch["duration_loss"].item())
+            metrics.update("pitch_loss", batch["pitch_loss"].item())
+            metrics.update("energy_loss", batch["energy_loss"].item())
         else:
             metrics.update("loss", 0) # we do not count loss in eval mode
         return batch

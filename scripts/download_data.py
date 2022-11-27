@@ -11,6 +11,7 @@ URL_LINKS = {
     "waveglow": "https://drive.google.com/u/0/uc?id=1WsibBTsuRg_SF2Z6L6NFRTT-NjEy1oTx",
     "mel": "https://drive.google.com/u/0/uc?id=1cJKJTmYd905a-9GFoo5gKjzhKjUVj83j",
     "alignments": "https://github.com/xcmyz/FastSpeech/raw/master/alignments.zip",
+    "mfa": "https://drive.google.com/u/0/uc?id=1ukb8o-SnqhXCxq7drI3zye3tZdrGvQDA&export=download"
 }
 
 def download():
@@ -41,6 +42,27 @@ def download():
     if not arc_path.exists():
         download_file(URL_LINKS['alignments'], arc_path)
     shutil.unpack_archive(str(arc_path), str(data_dir))
+    os.remove(str(arc_path))
+
+    #download mfa
+    arc_path = data_dir / 'mfa.zip'
+    if not arc_path.exists():
+        download_file(URL_LINKS['mfa'], arc_path)
+    shutil.unpack_archive(str(arc_path), str(data_dir))
+
+    align_dir = data_dir / 'MFA'
+    align_dir.mkdir(exist_ok=True, parents=True)
+    names = []
+    for i, fpath in enumerate((data_dir / "TextGrid" / "LJSpeech").iterdir()):
+        names.append(fpath.name)
+    names_dict = {name: i for i, name in enumerate(sorted(names))}
+
+    for i, fpath in enumerate((data_dir / "TextGrid" / "LJSpeech").iterdir()):
+        real_i = names_dict[fpath.name]
+        new_name = "ljspeech-mfa-%05d.TextGrid" % (real_i+1)
+        shutil.move(str(fpath), str(align_dir / new_name))
+
+    shutil.rmtree(str(data_dir / "TextGrid"))
     os.remove(str(arc_path))
 
 if __name__ == '__main__':

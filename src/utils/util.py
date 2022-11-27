@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import time
 from collections import OrderedDict
 from itertools import repeat
@@ -7,8 +8,9 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import textgrid
 import torch
-from text import text_to_sequence
+from text import _arpabet_to_sequence, _clean_text, text_to_sequence
 from tqdm.auto import tqdm
 
 ROOT_PATH = Path(__file__).absolute().resolve().parent.parent.parent
@@ -96,11 +98,14 @@ def process_text(train_text_path):
         return txt
 
 
-def get_data_to_buffer(data_path, mel_ground_truth, alignment_path, text_cleaners, batch_expand_size):    
+def get_data_to_buffer(data_path, mel_ground_truth, alignment_path,
+                       pitch_path, energy_path,
+                       text_cleaners, batch_expand_size):    
     data_path = str(ROOT_PATH / data_path)
     mel_ground_truth = str(ROOT_PATH / mel_ground_truth)
     alignment_path = str(ROOT_PATH / alignment_path)
-   
+    energy_path = str(ROOT_PATH / energy_path)
+
     buffer = list()
     text = process_text(data_path)
 
@@ -110,17 +115,35 @@ def get_data_to_buffer(data_path, mel_ground_truth, alignment_path, text_cleaner
         mel_gt_name = os.path.join(
             mel_ground_truth, "ljspeech-mel-%05d.npy" % (i+1))
         mel_gt_target = np.load(mel_gt_name)
-        duration = np.load(os.path.join(
-            alignment_path, str(i)+".npy"))
-        character = text[i][0:len(text[i])-1]
-        character = np.array(
-            text_to_sequence(character, text_cleaners))
+
+        dur_gt_name = os.path.join(
+            alignment_path, "npy/ljspeech-mfa-%05d.npy" % (i+1))
+        duration = np.load(dur_gt_name)
+
+        character_gt_name = os.path.join(
+            alignment_path, "text/ljspeech-mfa-%05d.txt" % (i+1))
+        with open(character_gt_name, 'r') as f:
+            character = f.readline()
+
+        pi_gt_name = os.path.join(
+            pitch_path, "ljspeech-pitch-%05d.npy" % (i+1))
+        pitch = np.load(pi_gt_name).astype(np.float32)
+
+        en_gt_name = os.path.join(
+            energy_path, "ljspeech-energy-%05d.npy" % (i+1))
+        energy = np.load(en_gt_name)
+
+        character = np.array(_arpabet_to_sequence(character))
 
         character = torch.from_numpy(character)
         duration = torch.from_numpy(duration)
+        pitch = torch.from_numpy(pitch)
+        energy = torch.from_numpy(energy)
         mel_gt_target = torch.from_numpy(mel_gt_target)
-
+            
         buffer.append({"text": character, "duration": duration,
+                       "pitch": pitch,
+                       "energy": energy,
                        "mel_target": mel_gt_target,
                        "batch_expand_size": batch_expand_size})
 
@@ -128,3 +151,24 @@ def get_data_to_buffer(data_path, mel_ground_truth, alignment_path, text_cleaner
     print("cost {:.2f}s to load all data into buffer.".format(end-start))
 
     return buffer
+
+
+def get_character_duration(intervals):
+    sr = 22050 # for ljspeech
+    hop_length = 256
+    win_length = 1024
+    min_times = []
+    max_times = []
+    letters = []
+    bad_tokens = ['sil', 'sp', '_', '~', '', 'spn']
+    for i in range(len(intervals)):
+        min_times.append(int(intervals[i].minTime * sr))
+        max_times.append(int(intervals[i].maxTime * sr))
+        letters.append(intervals[i].mark if intervals[i].mark not in bad_tokens else ' ')
+    alignments = np.zeros(len(letters), dtype=int)
+    for i in range(len(letters)):
+        start = (min_times[i] - win_length) // hop_length + 1
+        end = (max_times[i] - win_length) // hop_length + 1
+        alignments[i] = end - start
+    alignments[-1] += 1
+    return '_'.join(letters), alignments

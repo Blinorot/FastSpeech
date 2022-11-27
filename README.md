@@ -34,13 +34,21 @@ source fs_env/bin/activate
 pip install -r requirements.txt
 ```
 
-### Data downloading
+### Data downloading and preprocessing
 
 To download data run the following command:
 
 ```bash
 python3 scripts/download_data.py
 ```
+
+Then run `scripts/mfa.py` to create MFA mel-alignments from downloaded data.
+
+To extract pitch and energy run `scripts/get_energy.py` and `scripts/get_pitch.py`. This scripts print minimum and maximum energy\pitch which dataset has, use them in configs.
+
+Run `scripts/get_pretrained.py` script to download pre-trained model in the `saved/models/pretrained` directory. (Model was trained with `src/configs/train.json`)
+
+_Note_: If you want to use test utterances that differ from default ones, change text in `scripts/phomeizer.py`, run the script and pass each row of its output to `sythesizer.py` in `phoneme_tests` variable. See code for details.
 
 ## Project structure
 
@@ -70,7 +78,7 @@ Repository is structured in the following way.
 
 -   `saved` folder consists of logs and model checkpoints \ their configs in `log` and `models` subdirs respectively.
 
--   `scripts` folder consists of different `.py` files for downloading data and Pre-trained models.
+-   `scripts` folder consists of different `.py` files for downloading data, feature extracting, results logging and pre-trained models.
 
 -   `results` folder consists of synthesized test speech.
 
@@ -100,6 +108,37 @@ To train model with initialization from checkpoint:
 python3 train.py -c src/configs/config_name.json \
     -p path\to\saved\checkpoint.pth
 ```
+
+## Synthesizing
+
+To synthesize test utterances run the following command:
+
+```bash
+python3 synthesize.py -c path/to/saved/config -p path/to/model/checkpoint
+```
+
+For pre-trained model it will be:
+
+```bash
+python3 synthesize.py -c saved/models/pretrained/final/config.json\
+        -p saved/models/pretrained/final/model_best.pth
+```
+
+The sythesizer saves audio into `results` directory in the following format:
+
+```
+s={speed_coefficient}_p={pitch_coefficient}_e={energy_coefficient}_t={text_index_in_test_list}_{vocoder_name}.wav
+```
+
+Coefficients are 0.8, 1 and 1.2. Default test phrases:
+
+-   A defibrillator is a device that gives a high energy electric shock to the heart of someone who is in cardiac arrest
+
+-   Massachusetts Institute of Technology may be best known for its math, science and engineering education
+
+-   Wasserstein distance or Kantorovich Rubinstein metric is a distance function defined between probability distributions on a given metric space
+
+To log results directory to WandB run `scripts/log_results_wandb.py`. See `--help` option for setting project and run names.
 
 ## Authors
 
