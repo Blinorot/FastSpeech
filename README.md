@@ -86,7 +86,7 @@ Repository is structured in the following way.
 
 -   `train.py` script for training models.
 
--   `sythesize.py` script for synthesizing speech.
+-   `synthesis.py` script for synthesizing speech.
 
 ## Training
 
@@ -114,13 +114,13 @@ python3 train.py -c src/configs/config_name.json \
 To synthesize test utterances run the following command:
 
 ```bash
-python3 synthesize.py -c path/to/saved/config -p path/to/model/checkpoint
+python3 synthesis.py -c path/to/saved/config -p path/to/model/checkpoint
 ```
 
 For pre-trained model it will be:
 
 ```bash
-python3 synthesize.py -c saved/models/pretrained/final/config.json\
+python3 synthesis.py -c saved/models/pretrained/final/config.json\
         -p saved/models/pretrained/final/model_best.pth
 ```
 
